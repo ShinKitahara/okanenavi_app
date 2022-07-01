@@ -1,3 +1,1 @@
-#� �o�k�a�n�e�n�a�v�i�
-�
-�
+# okanenavi
