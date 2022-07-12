@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.google.android.material.tabs.TabLayoutMediator
 import okanenavi.co.jp.databinding.ActivityHomeBinding
-import okanenavi.co.jp.ui.main.SectionsPagerAdapter
+
 
 class HomeActivity : AppCompatActivity() {
     companion object {
@@ -20,8 +20,8 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val sectionsPagerAdapter = SectionsPagerAdapter(this)
-        binding.viewPager.adapter = sectionsPagerAdapter
+        val homePagerAdapter = HomePagerAdapter(this)
+        binding.viewPager.adapter = homePagerAdapter
 
         TabLayoutMediator(binding.tabs, binding.viewPager) { tab, position ->
             tab.text = TABS[position]

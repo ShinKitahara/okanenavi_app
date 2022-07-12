@@ -1,14 +1,10 @@
-package okanenavi.co.jp.ui.main
+package okanenavi.co.jp.ui.home
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 
-/**
- * A [FragmentStateAdapter] that returns a fragment corresponding to
- * one of the sections/tabs/pages.
- */
-class SectionsPagerAdapter(activity: AppCompatActivity) :
+class HomePagerAdapter(activity: AppCompatActivity) :
     FragmentStateAdapter(activity) {
 
     override fun getItemCount(): Int {
@@ -16,6 +12,6 @@ class SectionsPagerAdapter(activity: AppCompatActivity) :
     }
 
     override fun createFragment(position: Int): Fragment {
-        return PlaceholderFragment.newInstance(position + 1)
+        return HomeFragment.newInstance(position + 1)
     }
 }

@@ -12,12 +12,13 @@
     <string name="memo">メモ</string>
     <string name="cancel">キャンセル</string>
     <string name="save">保存</string>
+    <string name="delete">削除</string>
 
     <string-array name="subjects">
-        <item>食費</item>
-        <item>車維持費</item>
-        <item>家賃</item>
-        <item>給料</item>
-        <item>現金</item>
+        <item>費用</item>
+        <item>収益</item>
+        <item>資産</item>
+        <item>負債</item>
+        <item>純資産</item>
     </string-array>
 </resources>

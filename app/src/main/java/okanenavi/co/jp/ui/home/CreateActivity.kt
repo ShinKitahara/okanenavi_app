@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
@@ -16,18 +17,26 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storageMetadata
 import okanenavi.co.jp.R
 import okanenavi.co.jp.databinding.ActivityCreateBinding
 import okanenavi.co.jp.model.Record
+import okanenavi.co.jp.model.Record.Companion.toRecord
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
 
 class CreateActivity : AppCompatActivity() {
+    companion object {
+        const val ARG_RECORD_ID = "record_id"
+    }
+
     private lateinit var binding: ActivityCreateBinding
+
+    private var recordId: String? = null
 
     private val datePicker: MaterialDatePicker<Long> by lazy {
         Locale.setDefault(Locale.JAPAN)
@@ -53,6 +62,14 @@ class CreateActivity : AppCompatActivity() {
         binding = ActivityCreateBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        recordId = intent.getStringExtra(ARG_RECORD_ID)
+
+        configBinding()
+
+        loadRecord()
+    }
+
+    private fun configBinding() {
         datePicker.addOnPositiveButtonClickListener(dateSelection)
         timePicker.addOnPositiveButtonClickListener(timeSelection)
         binding.dateInput.setOnClickListener {
@@ -84,14 +101,67 @@ class CreateActivity : AppCompatActivity() {
 
         binding.cancelButton.setOnClickListener { finish() }
         binding.saveButton.setOnClickListener { onSave() }
+
+        if (recordId.isNullOrEmpty()) {
+            binding.deleteButton.visibility = View.GONE
+        } else {
+            binding.deleteButton.visibility = View.VISIBLE
+            binding.deleteButton.setOnClickListener { onDelete() }
+        }
+    }
+
+    private fun loadRecord() {
+        if (recordId.isNullOrEmpty()) return
+
+        binding.progressCircular.visibility = View.VISIBLE
+
+        Record.collectionRef.document(recordId!!).get().addOnCompleteListener { task ->
+            val record = task.result.toRecord()
+            if (record != null) {
+                showRecord(record)
+            } else {
+                binding.progressCircular.visibility = View.INVISIBLE
+            }
+        }
+    }
+
+    private fun showRecord(record: Record) {
+        date = record.date
+        val format = SimpleDateFormat.getDateInstance()
+        binding.dateInput.setText(format.format(record.date))
+
+        hour = record.hour
+        minute = record.minute
+        binding.timeInput.setText(getString(R.string.time_format, hour, minute))
+
+        binding.placeInput.setText(record.place)
+        binding.debitInput.setText(record.debit)
+        binding.creditInput.setText(record.credit)
+        binding.debitDetailInput.setText(record.debitDetail)
+        binding.creditDetailInput.setText(record.creditDetail)
+        binding.priceInput.setText(record.price.toString())
+        binding.memoInput.setText(record.memo)
+
+        if (recordId.isNullOrEmpty() || record.photoLink.isNullOrEmpty()) {
+            binding.progressCircular.visibility = View.INVISIBLE
+        } else {
+            val oneMegaByte: Long = 1024 * 1024
+            Record.storageRef.child(recordId!!).child(record.photoLink!!).getBytes(oneMegaByte)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val byteArray = task.result
+                        val photo = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                        binding.imageView.setImageBitmap(photo)
+                    }
+                    binding.progressCircular.visibility = View.INVISIBLE
+                }
+        }
     }
 
     private val dateSelection = MaterialPickerOnPositiveButtonClickListener<Long> {
         date = it
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = it
         val format = SimpleDateFormat.getDateInstance()
-        binding.dateInput.setText(format.format(calendar.time))
+        binding.dateInput.setText(format.format(it))
     }
 
     private val timeSelection = View.OnClickListener {
@@ -235,11 +305,11 @@ class CreateActivity : AppCompatActivity() {
             validate = false
         }
 
-        if (photo != null) {
-            binding.photoContainer.helperText = null
-        } else {
+        if (recordId.isNullOrEmpty() && photo == null) {
             binding.photoContainer.helperText = "写真を選択してください"
             validate = false
+        } else {
+            binding.photoContainer.helperText = null
         }
 
         return validate
@@ -253,6 +323,7 @@ class CreateActivity : AppCompatActivity() {
         binding.progressCircular.visibility = View.VISIBLE
 
         val record = Record(
+            recordId ?: "",
             currentUser.uid,
             Date().time,
             date!!,
@@ -264,26 +335,47 @@ class CreateActivity : AppCompatActivity() {
             binding.creditInput.text.toString(),
             binding.creditDetailInput.text.toString(),
             binding.priceInput.text.toString().toInt(),
-            binding.memoInput.text.toString(),
-            ""
+            binding.memoInput.text.toString()
         )
-        Record.collectionRef.add(record).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val recordId = task.result.id
-                uploadPhoto(recordId) { path ->
-                    if (path != null) {
-                        Record.collectionRef.document(recordId).update(
-                            mapOf("photoLink" to path)
-                        ).addOnCompleteListener {
+
+        if (recordId.isNullOrEmpty()) {
+            Record.collectionRef.add(record).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val rid = task.result.id
+                    uploadPhoto(rid) { path ->
+                        if (path != null) {
+                            Record.collectionRef.document(rid).update(
+                                mapOf("photoLink" to path)
+                            ).addOnCompleteListener {
+                                finish()
+                            }
+                        } else {
                             finish()
                         }
+                    }
+                } else {
+                    binding.progressCircular.visibility = View.INVISIBLE
+                }
+            }
+        } else {
+            Record.collectionRef.document(recordId!!).set(record, SetOptions.merge())
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        uploadPhoto(recordId!!) { path ->
+                            if (path != null) {
+                                Record.collectionRef.document(recordId!!).update(
+                                    mapOf("photoLink" to path)
+                                ).addOnCompleteListener {
+                                    finish()
+                                }
+                            } else {
+                                finish()
+                            }
+                        }
                     } else {
-                        finish()
+                        binding.progressCircular.visibility = View.INVISIBLE
                     }
                 }
-            } else {
-                binding.progressCircular.visibility = View.INVISIBLE
-            }
         }
     }
 
@@ -295,7 +387,8 @@ class CreateActivity : AppCompatActivity() {
         }
 
         val uuid = UUID.randomUUID().toString()
-        val storageRef = Record.storageRef.child(recordId).child("$uuid.jpg")
+        val fileName = "$uuid.jpg"
+        val storageRef = Record.storageRef.child(recordId).child(fileName)
 
         val byteStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteStream)
@@ -304,21 +397,32 @@ class CreateActivity : AppCompatActivity() {
             contentType = "image/jpg"
         }
 
-        val uploadTask = storageRef.putBytes(data, metadata)
-        uploadTask.continueWithTask { task ->
-            if (!task.isSuccessful) {
-                task.exception?.let {
-                    throw it
-                }
-            }
-            storageRef.downloadUrl
-        }.addOnCompleteListener { task ->
+        storageRef.putBytes(data, metadata).addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val downloadUri = task.result
-                completion(downloadUri.path)
+                completion(fileName)
             } else {
                 completion(null)
             }
+        }
+    }
+
+    private fun onDelete() {
+        val recordId = recordId ?: return
+
+        MaterialAlertDialogBuilder(this).apply {
+            setMessage("記録を削除しますか？")
+            setNegativeButton("キャンセル") { _, _ -> }
+            setPositiveButton("削除") { _, _ ->
+                binding.progressCircular.visibility = View.VISIBLE
+                Record.collectionRef.document(recordId).delete().addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        finish()
+                    } else {
+                        binding.progressCircular.visibility = View.INVISIBLE
+                    }
+                }
+            }
+            show()
         }
     }
 }
