@@ -1,5 +1,23 @@
 <resources>
     <string name="app_name">オカネナビ</string>
-    <string name="tab_text_1">支出</string>
-    <string name="tab_text_2">収入</string>
+    <string name="create">Create</string>
+    <string name="date">日付</string>
+    <string name="time">時刻</string>
+    <string name="time_format">%1$d:%2$d</string>
+    <string name="place">場所</string>
+    <string name="debit">借方</string>
+    <string name="credit">貸方</string>
+    <string name="price">価格</string>
+    <string name="yen">円</string>
+    <string name="memo">メモ</string>
+    <string name="cancel">キャンセル</string>
+    <string name="save">保存</string>
+
+    <string-array name="subjects">
+        <item>食費</item>
+        <item>車維持費</item>
+        <item>家賃</item>
+        <item>給料</item>
+        <item>現金</item>
+    </string-array>
 </resources>
