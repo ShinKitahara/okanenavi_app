@@ -232,7 +232,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/memo"
                     android:inputType="textMultiLine"
-                    android:minLines="4" />
+                    android:minLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -254,7 +254,7 @@
                         android:layout_height="0dp"
                         android:scaleType="centerCrop"
                         app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintDimensionRatio="H,4:3"
+                        app:layout_constraintDimensionRatio="H,16:9"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
