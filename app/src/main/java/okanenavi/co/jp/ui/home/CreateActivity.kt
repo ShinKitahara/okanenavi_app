@@ -5,12 +5,17 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -25,6 +30,8 @@ import okanenavi.co.jp.databinding.ActivityCreateBinding
 import okanenavi.co.jp.model.Record
 import okanenavi.co.jp.model.Record.Companion.toRecord
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -55,12 +62,20 @@ class CreateActivity : AppCompatActivity() {
     private var minute: Int? = null
     private var photo: Bitmap? = null
 
+    // カメラで撮影した写真のファイルURIを保持する変数
+    private var photoURI: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityCreateBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 本日の日付を設定
+        val today = Calendar.getInstance().time
+        val format = SimpleDateFormat.getDateInstance()
+        binding.dateInput.setText(format.format(today))
+        date = today.time
 
         recordId = intent.getStringExtra(ARG_RECORD_ID)
 
@@ -132,7 +147,13 @@ class CreateActivity : AppCompatActivity() {
 
         hour = record.hour
         minute = record.minute
-        binding.timeInput.setText(getString(R.string.time_format, hour, minute))
+
+        if (hour == null && minute == null) {
+            binding.timeInput.setText("")
+        } else {
+            val formattedTime = String.format("%02d:%02d", hour, minute)
+            binding.timeInput.setText(formattedTime)
+        }
 
         binding.placeInput.setText(record.place)
         binding.debitInput.setText(record.debit)
@@ -145,14 +166,16 @@ class CreateActivity : AppCompatActivity() {
         if (recordId.isNullOrEmpty() || record.photoLink.isNullOrEmpty()) {
             binding.progressCircular.visibility = View.INVISIBLE
         } else {
-            val oneMegaByte: Long = 1024 * 1024
-            Record.storageRef.child(recordId!!).child(record.photoLink!!).getBytes(oneMegaByte)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val byteArray = task.result
-                        val photo = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-                        binding.imageView.setImageBitmap(photo)
-                    }
+            val storageRef = Record.storageRef.child(recordId!!).child(record.photoLink!!)
+            val oneMegaByte: Long = 1024 * 1024 * 5 // 5MB
+            storageRef.getBytes(oneMegaByte)
+                .addOnSuccessListener { byteArray ->
+                    val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                    binding.imageView.setImageBitmap(bitmap)
+                    binding.progressCircular.visibility = View.INVISIBLE
+                }
+                .addOnFailureListener { exception ->
+                    Log.e("ShowRecord", "Failed to download image", exception)
                     binding.progressCircular.visibility = View.INVISIBLE
                 }
         }
@@ -167,7 +190,8 @@ class CreateActivity : AppCompatActivity() {
     private val timeSelection = View.OnClickListener {
         hour = timePicker.hour
         minute = timePicker.minute
-        binding.timeInput.setText(getString(R.string.time_format, hour, minute))
+        val formattedTime = String.format("%02d:%02d", hour, minute)
+        binding.timeInput.setText(formattedTime)
     }
 
     private fun onPickPhoto() {
@@ -186,6 +210,53 @@ class CreateActivity : AppCompatActivity() {
         }
     }
 
+    // カメラ起動用のインテントを作成するメソッド
+    private fun dispatchTakePictureIntent() {
+        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        // カメラアプリが存在するか確認
+        val activities = packageManager.queryIntentActivities(takePictureIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        if (activities.isNotEmpty()) {
+            // 撮影した写真を保存するファイルを作成
+            val photoFile: File? = try {
+                createImageFile()
+            } catch (ex: IOException) {
+                ex.printStackTrace()
+                null
+            }
+            // ファイルが作成できた場合
+            photoFile?.also {
+                photoURI = FileProvider.getUriForFile(
+                    this,
+                    "${packageName}.fileprovider",
+                    it
+                )
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                // URI に一時的な書き込み権限を付与
+                takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                resultCamera.launch(takePictureIntent)
+            } ?: run {
+                Toast.makeText(this, "写真ファイルの作成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, "カメラアプリが見つかりません", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 一時的な画像ファイルを作成するメソッド
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        if (storageDir != null && !storageDir.exists()) {
+            storageDir.mkdirs()
+        }
+        return File.createTempFile(
+            "JPEG_${timeStamp}_", /* prefix */
+            ".jpg", /* suffix */
+            storageDir /* directory */
+        )
+    }
+
     private val requestGalleryPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -193,15 +264,17 @@ class CreateActivity : AppCompatActivity() {
                     galleryIntent.type = "image/*"
                     resultGallery.launch(galleryIntent)
                 }
+            } else {
+                Toast.makeText(this, "ギャラリーへのアクセスが許可されていません", Toast.LENGTH_SHORT).show()
             }
         }
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
-                Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-                    resultCamera.launch(takePictureIntent)
-                }
+                dispatchTakePictureIntent()
+            } else {
+                Toast.makeText(this, "カメラのパーミッションが必要です", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -220,10 +293,21 @@ class CreateActivity : AppCompatActivity() {
     private val resultCamera =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
-                val bitmap = result.data?.extras?.get("data") as? Bitmap
-                if (bitmap != null) {
-                    didSelectBitmap(bitmap)
+                try {
+                    val inputStream = contentResolver.openInputStream(photoURI!!)
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
+                    if (bitmap != null) {
+                        didSelectBitmap(bitmap)
+                    } else {
+                        Toast.makeText(this, "写真の取得に失敗しました", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(this, "写真の取得に失敗しました", Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                Toast.makeText(this, "写真の撮影がキャンセルされました", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -242,19 +326,19 @@ class CreateActivity : AppCompatActivity() {
             validate = false
         }
 
+        // 時刻がなくてもエラーを表示しないようにする
         if (hour != null && minute != null) {
             binding.hourContainer.helperText = null
         } else {
-            binding.hourContainer.helperText = "時刻を選択してください"
-            validate = false
+            binding.hourContainer.helperText = null
         }
 
+        // 場所の入力は空欄でもエラーを表示しないようにする
         val place = binding.placeInput.text.toString()
         if (place.isNotEmpty()) {
             binding.placeContainer.helperText = null
         } else {
-            binding.placeContainer.helperText = "場所を入力してください"
-            validate = false
+            binding.placeContainer.helperText = null
         }
 
         val debit = binding.debitInput.text.toString()
@@ -297,17 +381,17 @@ class CreateActivity : AppCompatActivity() {
             validate = false
         }
 
+        // メモの入力は空欄でもエラーを表示しないようにする
         val memo = binding.memoInput.text.toString()
         if (memo.isNotEmpty()) {
             binding.memoContainer.helperText = null
         } else {
-            binding.memoContainer.helperText = "メモを入力してください"
-            validate = false
+            binding.memoContainer.helperText = null
         }
 
+        // 写真がなくてもエラーを表示しないようにする
         if (recordId.isNullOrEmpty() && photo == null) {
-            binding.photoContainer.helperText = "写真を選択してください"
-            validate = false
+            binding.photoContainer.helperText = null
         } else {
             binding.photoContainer.helperText = null
         }
@@ -327,8 +411,8 @@ class CreateActivity : AppCompatActivity() {
             currentUser.uid,
             Date().time,
             date!!,
-            hour!!,
-            minute!!,
+            hour,
+            minute,
             binding.placeInput.text.toString(),
             binding.debitInput.text.toString(),
             binding.debitDetailInput.text.toString(),
@@ -339,11 +423,13 @@ class CreateActivity : AppCompatActivity() {
         )
 
         if (recordId.isNullOrEmpty()) {
+            // 新しいレコードの追加
             Record.collectionRef.add(record).addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val rid = task.result.id
                     uploadPhoto(rid) { path ->
                         if (path != null) {
+                            // 画像のパスを更新
                             Record.collectionRef.document(rid).update(
                                 mapOf("photoLink" to path)
                             ).addOnCompleteListener {
@@ -358,11 +444,13 @@ class CreateActivity : AppCompatActivity() {
                 }
             }
         } else {
+            // 既存のレコードの更新
             Record.collectionRef.document(recordId!!).set(record, SetOptions.merge())
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         uploadPhoto(recordId!!) { path ->
                             if (path != null) {
+                                // 画像のパスを更新
                                 Record.collectionRef.document(recordId!!).update(
                                     mapOf("photoLink" to path)
                                 ).addOnCompleteListener {
@@ -391,19 +479,23 @@ class CreateActivity : AppCompatActivity() {
         val storageRef = Record.storageRef.child(recordId).child(fileName)
 
         val byteStream = ByteArrayOutputStream()
+        // 画像の圧縮品質を最高に設定
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteStream)
         val data = byteStream.toByteArray()
         val metadata = storageMetadata {
             contentType = "image/jpg"
         }
 
-        storageRef.putBytes(data, metadata).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
+        storageRef.putBytes(data, metadata)
+            .addOnSuccessListener {
+                // アップロード成功
                 completion(fileName)
-            } else {
+            }
+            .addOnFailureListener { exception ->
+                // アップロード失敗
+                Log.e("UploadPhoto", "Failed to upload photo", exception)
                 completion(null)
             }
-        }
     }
 
     private fun onDelete() {
