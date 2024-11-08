@@ -14,6 +14,8 @@
     <string name="save">保存</string>
     <string name="delete">削除</string>
 
+    <string name="cw_24_image">右に回転</string>
+
     <string-array name="subjects">
         <item>費用</item>
         <item>収益</item>
