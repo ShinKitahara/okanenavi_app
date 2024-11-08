@@ -65,6 +65,10 @@ class CreateActivity : AppCompatActivity() {
     // カメラで撮影した写真のファイルURIを保持する変数
     private var photoURI: Uri? = null
 
+    // 追加
+    private var currentBitmap: Bitmap? = null
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -112,6 +116,10 @@ class CreateActivity : AppCompatActivity() {
             binding.creditInput.setAdapter(adapter)
         }
 
+        binding.imageView.setOnClickListener {
+            onImageClick()
+        }
+
         binding.photoButton.setOnClickListener { onPickPhoto() }
 
         binding.cancelButton.setOnClickListener { finish() }
@@ -124,6 +132,29 @@ class CreateActivity : AppCompatActivity() {
             binding.deleteButton.setOnClickListener { onDelete() }
         }
     }
+
+    private fun onImageClick() {
+        val bitmap = currentBitmap
+        if (bitmap != null) {
+            try {
+                // 一時ファイルを作成
+                val file = File.createTempFile("temp_image", ".jpg", cacheDir)
+                val outputStream = file.outputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                outputStream.close()
+
+                val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+
+                val intent = Intent(this, PhotoViewActivity::class.java)
+                intent.putExtra(PhotoViewActivity.EXTRA_IMAGE_URI, uri)
+                startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "画像の表示に失敗しました", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     private fun loadRecord() {
         if (recordId.isNullOrEmpty()) return
@@ -172,6 +203,7 @@ class CreateActivity : AppCompatActivity() {
                 .addOnSuccessListener { byteArray ->
                     val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
                     binding.imageView.setImageBitmap(bitmap)
+                    currentBitmap = bitmap // 追加
                     binding.progressCircular.visibility = View.INVISIBLE
                 }
                 .addOnFailureListener { exception ->
@@ -313,6 +345,7 @@ class CreateActivity : AppCompatActivity() {
 
     private fun didSelectBitmap(bitmap: Bitmap) {
         photo = bitmap
+        currentBitmap = bitmap // 追加
         binding.imageView.setImageBitmap(bitmap)
     }
 
