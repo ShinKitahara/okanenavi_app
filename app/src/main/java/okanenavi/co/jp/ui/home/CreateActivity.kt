@@ -78,7 +78,9 @@ class CreateActivity : AppCompatActivity() {
         // 本日の日付を設定
         val today = Calendar.getInstance().time
         val format = SimpleDateFormat.getDateInstance()
-        binding.dateInput.setText(format.format(today))
+        //binding.dateInput.setText(format.format(today))
+        val currentDate = Date()
+        binding.dateInput.setText(formatDateWithDayOfWeek(currentDate))
         date = today.time
 
         recordId = intent.getStringExtra(ARG_RECORD_ID)
@@ -173,8 +175,10 @@ class CreateActivity : AppCompatActivity() {
 
     private fun showRecord(record: Record) {
         date = record.date
-        val format = SimpleDateFormat.getDateInstance()
-        binding.dateInput.setText(format.format(record.date))
+        //val format = SimpleDateFormat.getDateInstance()
+        //binding.dateInput.setText(format.format(record.date))
+        val currentDate = Date(date!!)
+        binding.dateInput.setText(formatDateWithDayOfWeek(currentDate))
 
         hour = record.hour
         minute = record.minute
@@ -347,6 +351,11 @@ class CreateActivity : AppCompatActivity() {
         photo = bitmap
         currentBitmap = bitmap // 追加
         binding.imageView.setImageBitmap(bitmap)
+    }
+
+    fun formatDateWithDayOfWeek(date: Date): String {
+        val sdf = SimpleDateFormat("yyyy/MM/dd (E)", Locale.getDefault())
+        return sdf.format(date)
     }
 
     private fun validation(): Boolean {
