@@ -34,6 +34,7 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.security.auth.Subject
 
 
 class CreateActivity : AppCompatActivity() {
@@ -175,8 +176,6 @@ class CreateActivity : AppCompatActivity() {
 
     private fun showRecord(record: Record) {
         date = record.date
-        //val format = SimpleDateFormat.getDateInstance()
-        //binding.dateInput.setText(format.format(record.date))
         val currentDate = Date(date!!)
         binding.dateInput.setText(formatDateWithDayOfWeek(currentDate))
 
@@ -197,6 +196,13 @@ class CreateActivity : AppCompatActivity() {
         binding.creditDetailInput.setText(record.creditDetail)
         binding.priceInput.setText(record.price.toString())
         binding.memoInput.setText(record.memo)
+
+        // subjectsを取得してドロップダウンリストに設定
+        val subjects = resources.getStringArray(R.array.subjects)
+        val adapter = ArrayAdapter(this@CreateActivity, android.R.layout.simple_spinner_item, subjects)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.debitInput.setAdapter(adapter)
+        binding.creditInput.setAdapter(adapter)
 
         if (recordId.isNullOrEmpty() || record.photoLink.isNullOrEmpty()) {
             binding.progressCircular.visibility = View.INVISIBLE

@@ -22,16 +22,16 @@
         <item>資産</item>
         <item>負債</item>
         <item>純資産</item>-->
-        <item>食費>自炊</item>
-        <item>食費>外食</item>
-        <item>日用品>生活用品</item>
-        <item>日用品>備品</item>
-        <item>税金>消費税</item>
-        <item>現金>財布</item>
-        <item>電子マネー>PayPay</item>
-        <item>銀行>みずほ</item>
-        <item>クレカ>三井住友</item>
-        <item>給料>固定給</item>
-        <item>給料>残業代</item>
+        <item>🫕自炊</item>
+        <item>🍔外食</item>
+        <item>🧻生活用品</item>
+        <item>🛋️備品</item>
+        <item>🛃消費税</item>
+        <item>🏦みずほ</item>
+        <item>👛財布</item>
+        <item>💰PayPay</item>
+        <item>💳三井住友VISA</item>
+        <item>💴固定給</item>
+        <item>💴残業代</item>
     </string-array>
 </resources>
