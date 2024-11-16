@@ -171,7 +171,7 @@
                         android:id="@+id/debit_detail_input"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/debit"
+                        android:hint="@string/debit_detail"
                         android:inputType="text"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
@@ -182,7 +182,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/activity_horizontal_margin"
-                    android:layout_weight="1"
+                    android:layout_weight="0.5"
                     app:helperTextTextColor="@color/red">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -213,7 +213,7 @@
                         android:id="@+id/credit_detail_input"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/credit"
+                        android:hint="@string/credit_detail"
                         android:inputType="text"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>

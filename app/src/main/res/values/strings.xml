@@ -7,6 +7,8 @@
     <string name="place">場所</string>
     <string name="debit">借方</string>
     <string name="credit">貸方</string>
+    <string name="debit_detail">借方明細</string>
+    <string name="credit_detail">貸方明細</string>
     <string name="price">価格</string>
     <string name="yen">円</string>
     <string name="memo">メモ</string>
