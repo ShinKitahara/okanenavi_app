@@ -84,6 +84,9 @@ class CreateActivity : AppCompatActivity() {
         binding.dateInput.setText(formatDateWithDayOfWeek(currentDate))
         date = today.time
 
+        binding.debitDetailInput.setText("明細なし")
+        binding.creditDetailInput.setText("明細なし")
+
         recordId = intent.getStringExtra(ARG_RECORD_ID)
 
         configBinding()
