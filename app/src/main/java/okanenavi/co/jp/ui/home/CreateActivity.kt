@@ -53,9 +53,21 @@ class CreateActivity : AppCompatActivity() {
             .build()
     }
 
-    private val timePicker: MaterialTimePicker by lazy {
+    /*private val timePicker: MaterialTimePicker by lazy {
         Locale.setDefault(Locale.JAPAN)
         MaterialTimePicker.Builder().setTimeFormat(TimeFormat.CLOCK_24H).build()
+    }*/
+
+    private val timePicker: MaterialTimePicker by lazy {
+        val now = Calendar.getInstance()
+        val currentHour = now.get(Calendar.HOUR_OF_DAY)
+        val currentMinute = now.get(Calendar.MINUTE)
+        Locale.setDefault(Locale.JAPAN)
+        MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(currentHour)
+            .setMinute(currentMinute)
+            .build()
     }
 
     private var date: Long? = null
