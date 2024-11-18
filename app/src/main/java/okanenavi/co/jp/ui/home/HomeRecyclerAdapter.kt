@@ -17,9 +17,10 @@ class HomeRecyclerAdapter(private val listener: (Record) -> Unit) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: Record) {
             val created = Date(item.date ?: 0)
-            binding.createdText.text = SimpleDateFormat("M月d日").format(created)
+            binding.createdText.text = SimpleDateFormat("MM/dd(E)").format(created)
+            binding.placeText.text = item.place
             binding.debitText.text = item.debit
-            binding.priceText.text = NumberFormat.getInstance().format(item.price) + " 円"
+            binding.priceText.text = "¥ " + NumberFormat.getInstance().format(item.price) // + " 円"
             binding.creditText.text = item.credit
         }
 

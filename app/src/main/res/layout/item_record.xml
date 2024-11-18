@@ -15,11 +15,21 @@
             android:id="@+id/created_text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0.55"
-            tools:text="12月10日" />
-        <Space
+            android:layout_weight="0.7"
+            tools:text="12/10(月)" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/place_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.7"
+            android:gravity="left"
+            android:maxLines="1"
+            tools:text="はま寿司" />
+
+<!--        <Space
             android:layout_width="@dimen/activity_vertical_margin"
-            android:layout_height="0dp" />
+            android:layout_height="0dp" />-->
 
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/debit_text"
@@ -27,7 +37,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="left"
-            tools:text="吉野家" />
+            android:maxLines="1"
+            tools:text="外食" />
 
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/price_text"
@@ -35,6 +46,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="0.5"
             android:gravity="end"
+            android:maxLines="1"
             tools:text="551円" />
 
         <Space
@@ -47,6 +59,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="left"
+            android:maxLines="1"
             tools:text="現金" />
 
     </androidx.appcompat.widget.LinearLayoutCompat>
